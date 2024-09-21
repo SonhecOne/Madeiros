@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimización de Cortes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #28a745;
+            color: white;
+            padding: 10px;
+            text-align: center;
+        }
+        nav {
+            margin: 10px 0;
+        }
+        nav a {
+            color: white;
+            margin: 0 15px;
+            text-decoration: none;
+        }
+        h1 {
+            text-align: center;
+            margin-top: 10px;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .svg-container {
+            border: 1px solid #ddd;
+            margin-top: 20px;
+            overflow: auto;
+        }
+        .pieces {
+            display: flex;
+            flex-direction: column;
+        }
+        .piece-input {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>MADEIROS L&D L&D</h1>
+    <nav>
+        <a href="index.html">Inicio</a>
+        <a href="#Acerca de nosotros">Acerca de nosotros</a>
+        <a href="#Contacto">Contacto</a>
+    </nav>
+</header>
+
+<div class="container">
+    <h1>Optimización de Cortes</h1>
+    
+    <div class="input-group">
+        <label for="sheetWidth">Ancho de la lámina (cm):</label>
+        <input type="number" id="sheetWidth" placeholder="Ej: 122">
+    </div>
+    
+    <div class="input-group">
+        <label for="sheetLength">Largo de la lámina (cm):</label>
+        <input type="number" id="sheetLength" placeholder="Ej: 244">
+    </div>
+
+    <div class="input-group">
+        <label for="divider">Espacio entre piezas (cm):</label>
+        <input type="number" id="divider" placeholder="Ej: 2">
+    </div>
+
+    <div class="input-group pieces" id="piecesContainer">
+        <label>Piezas (Ancho x Largo):</label>
+        <div class="piece-input">
+            <input type="number" class="pieceWidth" placeholder="Ancho (cm)">
+            <span>X</span>
+            <input type="number" class="pieceLength" placeholder="Largo (cm)">
+            <input type="number" class="pieceCount" placeholder="Cantidad">
+        </div>
+    </div>
+    
+    <button onclick="addPieceInput()">Agregar más piezas</button>
+    <button onclick="calculateCuts()">Calcular y Graficar</button>
+    <button onclick="printResults()">Imprimir</button>
+    
+    <div class="svg-container">
+        <svg id="sheetSvg" width="800" height="400"></svg>
+    </div>
+    
+    <div class="results" id="results"></div>
+</div>
+
+<script>
+    let pieces = [];
+    let sheetDimensions = { width: 0, length: 0 };
+    const svg = document.getElementById('sheetSvg');
+
+    function addPieceInput() {
+        const piecesContainer = document.getElementById('piecesContainer');
+        const newPieceInput = document.createElement('div');
+        newPieceInput.className = 'piece-input';
+        newPieceInput.innerHTML = `
+            <input type="number" class="pieceWidth" placeholder="Ancho (cm)">
+            <span>X</span>
+            <input type="number" class="pieceLength" placeholder="Largo (cm)">
+            <input type="number" class="pieceCount" placeholder="Cantidad">
+        `;
+        piecesContainer.appendChild(newPieceInput);
+    }
+
+    function calculateCuts() {
+        const sheetWidth = document.getElementById('sheetWidth').value;
+        const sheetLength = document.getElementById('sheetLength').value;
+        const divider = document.getElementById('divider').value;
+
+        if (!sheetWidth || !sheetLength) {
+            alert('Por favor, ingresa las dimensiones de la lámina.');
+            return;
+        }
+
+        pieces = [];
+        const pieceWidths = document.querySelectorAll('.pieceWidth');
+        const pieceLengths = document.querySelectorAll('.pieceLength');
+        const pieceCounts = document.querySelectorAll('.pieceCount');
+        
+        for (let i = 0; i < pieceWidths.length; i++) {
+            const width = pieceWidths[i].value;
+            const length = pieceLengths[i].value;
+            const count = pieceCounts[i].value;
+            if (width && length && count) {
+                pieces.push({ width: parseFloat(width), length: parseFloat(length), count: parseInt(count) });
+            }
+        }
+
+        sheetDimensions = { width: parseFloat(sheetWidth), length: parseFloat(sheetLength) };
+        drawSheet(divider);
+        showResults();
+    }
+
+    function drawSheet(divider) {
+        while (svg.firstChild) {
+            svg.removeChild(svg.firstChild);
+        }
+
+        const scale = 4; // Factor de escala para el dibujo
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("x", 0);
+        rect.setAttribute("y", 0);
+        rect.setAttribute("width", sheetDimensions.width * scale);
+        rect.setAttribute("height", sheetDimensions.length * scale);
+        rect.setAttribute("fill", "#e0e0e0");
+        svg.appendChild(rect);
+
+        let xOffset = 0;
+        let yOffset = 0;
+        const spacing = parseFloat(divider); // Espacio entre piezas
+
+        pieces.sort((a, b) => (b.width * b.count) - (a.width * a.count)); // Ordenar por ancho total
+
+        pieces.forEach(piece => {
+            const width = piece.width * scale;
+            const length = piece.length * scale;
+            const count = piece.count;
+
+            for (let j = 0; j < count; j++) {
+                if (xOffset + width > sheetDimensions.width * scale) {
+                    xOffset = 0;
+                    yOffset += length + spacing * scale;
+
+                    // Verificar si hay suficiente espacio
+                    if (yOffset + length > sheetDimensions.length * scale) {
+                        alert('Las piezas no caben en la lámina.');
+                        return;
+                    }
+                }
+
+                const pieceRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                pieceRect.setAttribute("x", xOffset);
+                pieceRect.setAttribute("y", yOffset);
+                pieceRect.setAttribute("width", width);
+                pieceRect.setAttribute("height", length);
+                pieceRect.setAttribute("fill", "#74b9ff");
+                pieceRect.setAttribute("stroke", "black");
+                svg.appendChild(pieceRect);
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", xOffset + 5);
+                text.setAttribute("y", yOffset + 15);
+                text.setAttribute("fill", "black");
+                text.textContent = `${piece.width}x${piece.length}`;
+                svg.appendChild(text);
+
+                xOffset += width + spacing * scale;
+            }
+            xOffset = 0;
+            yOffset += length + spacing * scale;
+        });
+    }
+
+    function showResults() {
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = `
+            <h2>Resultados</h2>
+            <p>Hojas utilizadas: 1</p>
+            <p>Piezas procesadas: ${pieces.length}</p>
+            <h3>Detalles</h3>
+            <p>Ancho de la lámina: ${sheetDimensions.width} cm</p>
+            <p>Largo de la lámina: ${sheetDimensions.length} cm</p>
+            <p>Espacio entre piezas: ${document.getElementById('divider').value} cm</p>
+            <h4>Piezas:</h4>
+            <ul>
+                ${pieces.map(piece => `<li>${piece.count}x ${piece.width} cm x ${piece.length} cm</li>`).join('')}
+            </ul>
+        `;
+    }
+
+    function printResults() {
+        const printContent = document.getElementById('results').innerHTML + document.getElementById('sheetSvg').outerHTML;
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Imprimir Resultados</title>
+                <style>
+                    body { font-family: Arial, sans-serif; }
+                    h2 { color: #28a745; }
+                    .svg-container { text-align: center; }
+                </style>
+            </head>
+            <body>
+                <h1>Resultados de Optimización de Cortes</h1>
+                ${printContent}
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+    }
+</script>
+
+</body>
+</html>
