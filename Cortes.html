@@ -16,17 +16,10 @@
             padding: 10px;
             text-align: center;
         }
-        nav {
-            margin: 10px 0;
-        }
         nav a {
             color: white;
             margin: 0 15px;
             text-decoration: none;
-        }
-        h1 {
-            text-align: center;
-            margin-top: 10px;
         }
         .container {
             max-width: 800px;
@@ -39,7 +32,7 @@
         .input-group {
             margin-bottom: 15px;
         }
-        input[type="number"] {
+        input[type="number"], input[type="text"] {
             width: 100%;
             padding: 8px;
             margin-top: 5px;
@@ -54,18 +47,17 @@
             border-radius: 4px;
             cursor: pointer;
             width: 100%;
+            margin-top: 10px;
         }
         button:hover {
             background-color: #218838;
         }
-        .canvas-container {
+        .svg-container {
             border: 1px solid #ddd;
-            margin-top: 50px;
-            overflow: auto; /* Asegura que no se recorte el canvas */
-        }
-        canvas {
-            width: 100%;
+            margin-top: 20px;
+            text-align: center;
             height: auto;
+            overflow: auto;
         }
         .pieces {
             display: flex;
@@ -76,12 +68,31 @@
             justify-content: space-between;
             margin-bottom: 10px;
         }
+        .results {
+            margin-top: 20px;
+        }
+        .sheet {
+            position: relative;
+            border: 2px solid black;
+            margin: 10px;
+            display: inline-block;
+        }
+        .dimensions {
+            position: absolute;
+            top: -20px;
+            left: 0;
+            font-weight: bold;
+        }
+        .piece-dimensions {
+            font-size: 10px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>MADEIROS L&D L&D</h1>
+    <h1>MADEIROS L&D</h1>
     <nav>
         <a href="index.html">Inicio</a>
         <a href="#Acerca de nosotros">Acerca de nosotros</a>
@@ -91,23 +102,42 @@
 
 <div class="container">
     <h1>Optimización de Cortes</h1>
-    
+
     <div class="input-group">
-        <label for="sheetWidth">Ancho de la lámina (cm):</label>
-        <input type="number" id="sheetWidth" placeholder="Ej: 122">
+        <label for="sheetWidth">Ancho de la lámina (mm):</label>
+        <input type="number" id="sheetWidth" value="2500" placeholder="Ej: 2500">
     </div>
     
     <div class="input-group">
-        <label for="sheetLength">Largo de la lámina (cm):</label>
-        <input type="number" id="sheetLength" placeholder="Ej: 244">
+        <label for="sheetLength">Largo de la lámina (mm):</label>
+        <input type="number" id="sheetLength" value="1830" placeholder="Ej: 1830">
+    </div>
+
+    <div class="input-group">
+        <label for="divider">Espacio entre piezas (mm):</label>
+        <input type="number" id="divider" value="20" placeholder="Ej: 20">
+    </div>
+
+    <div class="input-group">
+        <label for="sheetCount">Cantidad de láminas:</label>
+        <input type="number" id="sheetCount" value="1" min="1" placeholder="Ej: 1">
+    </div>
+
+    <div class="input-group">
+        <label for="layoutStyle">Estilo de Acomodamiento:</label>
+        <select id="layoutStyle">
+            <option value="vertical">Vertical</option>
+            <option value="horizontal">Horizontal</option>
+            <option value="optimal">Óptimo</option>
+        </select>
     </div>
 
     <div class="input-group pieces" id="piecesContainer">
         <label>Piezas (Ancho x Largo):</label>
         <div class="piece-input">
-            <input type="number" class="pieceWidth" placeholder="Ancho (cm)">
+            <input type="number" class="pieceWidth" placeholder="Ancho (mm)">
             <span>X</span>
-            <input type="number" class="pieceLength" placeholder="Largo (cm)">
+            <input type="number" class="pieceLength" placeholder="Largo (mm)">
             <input type="number" class="pieceCount" placeholder="Cantidad">
         </div>
     </div>
@@ -115,130 +145,156 @@
     <button onclick="addPieceInput()">Agregar más piezas</button>
     <button onclick="calculateCuts()">Calcular y Graficar</button>
     
-    <div class="canvas-container">
-        <canvas id="sheetCanvas" width="800" height="400"></canvas>
-    </div>
+    <div class="svg-container" id="svgContainer"></div>
     
     <div class="results" id="results"></div>
+    
+    <div id="totalContainer" style="margin-top: 20px;">
+        <h3>Total a pagar: <span id="totalPrice">$0</span></h3>
+        <button id="payButton" style="display: none;" onclick="goToPaymentPage()">Pagar</button>
+        <button id="printButton" style="display: none;" onclick="printSheet()">Imprimir</button>
+    </div>
 </div>
 
 <script>
-    let pieces = [];
-    let sheetDimensions = { width: 0, length: 0 };
+    const scale = 0.25;
 
     function addPieceInput() {
         const piecesContainer = document.getElementById('piecesContainer');
         const newPieceInput = document.createElement('div');
         newPieceInput.className = 'piece-input';
         newPieceInput.innerHTML = `
-            <input type="number" class="pieceWidth" placeholder="Ancho (cm)">
+            <input type="number" class="pieceWidth" placeholder="Ancho (mm)">
             <span>X</span>
-            <input type="number" class="pieceLength" placeholder="Largo (cm)">
+            <input type="number" class="pieceLength" placeholder="Largo (mm)">
             <input type="number" class="pieceCount" placeholder="Cantidad">
         `;
         piecesContainer.appendChild(newPieceInput);
     }
+    
+
+
 
     function calculateCuts() {
-        const sheetWidth = document.getElementById('sheetWidth').value;
-        const sheetLength = document.getElementById('sheetLength').value;
+        const svgContainer = document.getElementById('svgContainer');
+        svgContainer.innerHTML = '';
 
-        if (!sheetWidth || !sheetLength) {
-            alert('Por favor, ingresa las dimensiones de la lámina.');
-            return;
-        }
+        const sheetWidth = parseFloat(document.getElementById('sheetWidth').value);
+        const sheetLength = parseFloat(document.getElementById('sheetLength').value);
+        const divider = parseFloat(document.getElementById('divider').value);
+        const sheetCount = parseInt(document.getElementById('sheetCount').value);
+        const layoutStyle = document.getElementById('layoutStyle').value;
 
-        pieces = [];
-        const pieceWidths = document.querySelectorAll('.pieceWidth');
-        const pieceLengths = document.querySelectorAll('.pieceLength');
-        const pieceCounts = document.querySelectorAll('.pieceCount');
-        
-        for (let i = 0; i < pieceWidths.length; i++) {
-            const width = pieceWidths[i].value;
-            const length = pieceLengths[i].value;
-            const count = pieceCounts[i].value;
-            if (width && length && count) {
-                pieces.push({ width: parseFloat(width), length: parseFloat(length), count: parseInt(count) });
+        let totalSheetsNeeded = 0;
+        let remainingPieces = [];
+
+        document.querySelectorAll('.piece-input').forEach(input => {
+            const width = parseFloat(input.querySelector('.pieceWidth').value);
+            const length = parseFloat(input.querySelector('.pieceLength').value);
+            const count = parseInt(input.querySelector('.pieceCount').value);
+
+            if (!isNaN(width) && !isNaN(length) && !isNaN(count)) {
+                remainingPieces.push({ width, length, count });
             }
-        }
+        });
 
-        sheetDimensions = { width: parseFloat(sheetWidth), length: parseFloat(sheetLength) };
-        drawSheet();
-        showResults();
-    }
+        while (remainingPieces.length > 0) {
+            totalSheetsNeeded++;
+            let xOffset = 0;
+            let yOffset = 0;
+            const sheetRect = document.createElement('div');
+            sheetRect.className = 'sheet';
+            sheetRect.style.width = `${sheetWidth * scale}px`;
+            sheetRect.style.height = `${sheetLength * scale}px`;
+            svgContainer.appendChild(sheetRect);
 
-    function drawSheet() {
-        const canvas = document.getElementById('sheetCanvas');
-        const ctx = canvas.getContext('2d');
-        const scale = 4; // Factor de escala para el dibujo
+            const dimensionsLabel = document.createElement('div');
+            dimensionsLabel.className = 'dimensions';
+            dimensionsLabel.innerText = `${sheetWidth} mm x ${sheetLength} mm`;
+            sheetRect.appendChild(dimensionsLabel);
 
-        // Limpiar el canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#e0e0e0';
-        ctx.fillRect(0, 0, sheetDimensions.width * scale, sheetDimensions.length * scale);
-        ctx.strokeStyle = 'black';
-        ctx.strokeRect(0, 0, sheetDimensions.width * scale, sheetDimensions.length * scale);
+            for (let i = 0; i < remainingPieces.length; i++) {
+                const piece = remainingPieces[i];
 
-        let xOffset = 0;
-        let yOffset = 0;
-        const spacing = 2; // Espacio entre piezas
+                while (piece.count > 0) {
+                    const totalWidth = piece.width;
+                    const totalLength = piece.length;
 
-        // Organizar las piezas
-        pieces.sort((a, b) => (b.width * b.count) - (a.width * a.count)); // Ordenar por ancho total
+                    // Elegir el método de colocación
+                    if (layoutStyle === 'vertical') {
+                        if (xOffset + totalWidth * scale > sheetWidth * scale) {
+                            xOffset = 0;
+                            yOffset += totalLength * scale + divider * scale;
+                        }
+                        if (yOffset + totalLength * scale > sheetLength * scale) {
+                            break; // No cabe en la lámina, salir del bucle
+                        }
+                    } else if (layoutStyle === 'horizontal') {
+                        if (yOffset + totalLength * scale > sheetLength * scale) {
+                            xOffset += totalWidth * scale + divider * scale;
+                            yOffset = 0;
+                        }
+                        if (xOffset + totalWidth * scale > sheetWidth * scale) {
+                            break; // No cabe en la lámina, salir del bucle
+                        }
+                    } else { // Óptimo
+                        // Colocación flexible
+                        if (xOffset + totalWidth * scale > sheetWidth * scale) {
+                            xOffset = 0;
+                            yOffset += totalLength * scale + divider * scale;
+                        }
+                        if (yOffset + totalLength * scale > sheetLength * scale) {
+                            break; // No cabe en la lámina, salir del bucle
+                        }
+                    }
 
-        pieces.forEach(piece => {
-            const width = piece.width * scale;
-            const length = piece.length * scale;
-            const count = piece.count;
+                    const pieceRect = document.createElement('div');
+                    pieceRect.style.position = 'absolute';
+                    pieceRect.style.left = `${xOffset}px`;
+                    pieceRect.style.top = `${yOffset}px`;
+                    pieceRect.style.width = `${totalWidth * scale}px`;
+                    pieceRect.style.height = `${totalLength * scale}px`;
+                    pieceRect.style.backgroundColor = '#74b9ff';
+                    pieceRect.style.border = '1px solid black';
+                    sheetRect.appendChild(pieceRect);
 
-            for (let j = 0; j < count; j++) {
-                if (xOffset + width > sheetDimensions.width * scale) {
-                    xOffset = 0;
-                    yOffset += length + spacing;
+                    const pieceDimensions = document.createElement('div');
+                    pieceDimensions.className = 'piece-dimensions';
+                    pieceDimensions.innerText = `${totalWidth} mm x ${totalLength} mm`;
+                    pieceRect.appendChild(pieceDimensions);
 
-                    // Verificar si hay suficiente espacio
-                    if (yOffset + length > sheetDimensions.length * scale) {
-                        alert('Las piezas no caben en la lámina.');
-                        return;
+                    // Incrementar el offset según el método
+                    if (layoutStyle === 'vertical') {
+                        xOffset += totalWidth * scale + divider * scale;
+                    } else if (layoutStyle === 'horizontal') {
+                        yOffset += totalLength * scale + divider * scale;
+                    } else {
+                        // En el estilo óptimo simplemente incrementa el offset
+                        xOffset += totalWidth * scale + divider * scale;
+                    }
+
+                    piece.count--;
+                    if (piece.count <= 0) {
+                        remainingPieces.splice(i, 1);
+                        break;
                     }
                 }
-
-                // Dibujar la pieza
-                ctx.fillStyle = '#74b9ff';
-                ctx.fillRect(xOffset, yOffset, width, length);
-                ctx.strokeStyle = 'black';
-                ctx.strokeRect(xOffset, yOffset, width, length);
-                ctx.fillStyle = 'black';
-                ctx.fillText(`${piece.width}x${piece.length}`, xOffset + 5, yOffset + 15);
-
-                // Dibujar líneas de corte
-                ctx.strokeStyle = 'red';
-                ctx.beginPath();
-                ctx.moveTo(xOffset, yOffset);
-                ctx.lineTo(xOffset + width, yOffset);
-                ctx.moveTo(xOffset, yOffset + length);
-                ctx.lineTo(xOffset + width, yOffset + length);
-                ctx.moveTo(xOffset, yOffset);
-                ctx.lineTo(xOffset, yOffset + length);
-                ctx.moveTo(xOffset + width, yOffset);
-                ctx.lineTo(xOffset + width, yOffset + length);
-                ctx.stroke();
-
-                xOffset += width + spacing;
             }
-            // Reiniciar xOffset después de cada pieza
-            xOffset = 0;
-            yOffset += length + spacing;
-        });
+        }
+
+        const pricePerSheet = 100; // Definir precio por lámina
+        const totalPrice = pricePerSheet * totalSheetsNeeded * sheetCount;
+        document.getElementById('totalPrice').innerText = `$${totalPrice}`;
+        document.getElementById('payButton').style.display = 'inline-block';
+        document.getElementById('printButton').style.display = 'inline-block';
     }
 
-    function showResults() {
-        const resultsDiv = document.getElementById('results');
-        resultsDiv.innerHTML = `
-            <h2>Resultados</h2>
-            <p>Hojas utilizadas: 1</p>
-            <p>Piezas procesadas: ${pieces.length}</p>
-        `;
+    function goToPaymentPage() {
+        alert("Redirigiendo a la página de pago...");
+    }
+
+    function printSheet() {
+        window.print();
     }
 </script>
 
