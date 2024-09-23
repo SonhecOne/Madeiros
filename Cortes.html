@@ -171,9 +171,6 @@
         `;
         piecesContainer.appendChild(newPieceInput);
     }
-    
-
-
 
     function calculateCuts() {
         const svgContainer = document.getElementById('svgContainer');
@@ -217,33 +214,33 @@
                 const piece = remainingPieces[i];
 
                 while (piece.count > 0) {
-                    const totalWidth = piece.width;
-                    const totalLength = piece.length;
+                    const totalWidth = piece.width * scale;
+                    const totalLength = piece.length * scale;
 
                     // Elegir el método de colocación
                     if (layoutStyle === 'vertical') {
-                        if (xOffset + totalWidth * scale > sheetWidth * scale) {
+                        if (xOffset + totalWidth > sheetWidth * scale) {
                             xOffset = 0;
-                            yOffset += totalLength * scale + divider * scale;
+                            yOffset += totalLength + divider;
                         }
-                        if (yOffset + totalLength * scale > sheetLength * scale) {
+                        if (yOffset + totalLength > sheetLength * scale) {
                             break; // No cabe en la lámina, salir del bucle
                         }
                     } else if (layoutStyle === 'horizontal') {
-                        if (yOffset + totalLength * scale > sheetLength * scale) {
-                            xOffset += totalWidth * scale + divider * scale;
+                        if (yOffset + totalLength > sheetLength * scale) {
+                            xOffset += totalWidth + divider;
                             yOffset = 0;
                         }
-                        if (xOffset + totalWidth * scale > sheetWidth * scale) {
+                        if (xOffset + totalWidth > sheetWidth * scale) {
                             break; // No cabe en la lámina, salir del bucle
                         }
                     } else { // Óptimo
                         // Colocación flexible
-                        if (xOffset + totalWidth * scale > sheetWidth * scale) {
+                        if (xOffset + totalWidth > sheetWidth * scale) {
                             xOffset = 0;
-                            yOffset += totalLength * scale + divider * scale;
+                            yOffset += totalLength + divider;
                         }
-                        if (yOffset + totalLength * scale > sheetLength * scale) {
+                        if (yOffset + totalLength > sheetLength * scale) {
                             break; // No cabe en la lámina, salir del bucle
                         }
                     }
@@ -252,25 +249,24 @@
                     pieceRect.style.position = 'absolute';
                     pieceRect.style.left = `${xOffset}px`;
                     pieceRect.style.top = `${yOffset}px`;
-                    pieceRect.style.width = `${totalWidth * scale}px`;
-                    pieceRect.style.height = `${totalLength * scale}px`;
+                    pieceRect.style.width = `${totalWidth}px`;
+                    pieceRect.style.height = `${totalLength}px`;
                     pieceRect.style.backgroundColor = '#74b9ff';
                     pieceRect.style.border = '1px solid black';
                     sheetRect.appendChild(pieceRect);
 
                     const pieceDimensions = document.createElement('div');
                     pieceDimensions.className = 'piece-dimensions';
-                    pieceDimensions.innerText = `${totalWidth} mm x ${totalLength} mm`;
+                    pieceDimensions.innerText = `${piece.width} mm x ${piece.length} mm`;
                     pieceRect.appendChild(pieceDimensions);
 
                     // Incrementar el offset según el método
                     if (layoutStyle === 'vertical') {
-                        xOffset += totalWidth * scale + divider * scale;
+                        xOffset += totalWidth + divider;
                     } else if (layoutStyle === 'horizontal') {
-                        yOffset += totalLength * scale + divider * scale;
+                        yOffset += totalLength + divider;
                     } else {
-                        // En el estilo óptimo simplemente incrementa el offset
-                        xOffset += totalWidth * scale + divider * scale;
+                        xOffset += totalWidth + divider;
                     }
 
                     piece.count--;
@@ -300,3 +296,4 @@
 
 </body>
 </html>
+
