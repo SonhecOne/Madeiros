@@ -156,19 +156,57 @@
         .product a:hover {
             background-color: #049400;
         }
+
+        #navbar {
+    display: flex;
+}
+
+#menuToggle {
+    display: none; /* Ocultar el botón por defecto */
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    #navbar {
+        display: none; /* Ocultar el menú por defecto en móviles */
+        flex-direction: column;
+        position: absolute;
+        background-color: #06af00;
+        width: 100%;
+        top: 60px; /* Ajusta según la altura del header */
+        left: 0;
+    }
+    
+    #navbar.show {
+        display: flex; /* Mostrar el menú cuando se activa */
+    }
+    
+    #menuToggle {
+        display: block; /* Mostrar el botón en móviles */
+    }
+}
+
+
+        
     </style>
 </head>
 <body>
-    <header>
-        <h1>MADEIROS L&D</h1>
-        <nav>
-            <a href="#sobre">Sobre nosotros</a>
-            <a href="#servicios">Servicios</a>
-            <a href="#productos">Productos</a>
-            <a href="contacto.html">Contacto</a>
-            <a href="Cortes.html">Optimizador de cortes</a>
-        </nav>
-    </header>
+  <header>
+    <h1>MADEIROS L&D</h1>
+    <button id="menuToggle" aria-label="Toggle menu">☰</button>
+    <nav id="navbar">
+        <a href="#sobre">Sobre nosotros</a>
+        <a href="#servicios">Servicios</a>
+        <a href="#productos">Productos</a>
+        <a href="contacto.html">Contacto</a>
+        <a href="Cortes.html">Optimizador de cortes</a>
+    </nav>
+</header>
+
 
     <div class="content">
         <section id="sobre">
@@ -276,6 +314,12 @@
                 button.classList.toggle('active', index === currentIndex);
             });
         }
+
+        document.getElementById('menuToggle').onclick = () => {
+    const navbar = document.getElementById('navbar');
+    navbar.classList.toggle('show'); // Alterna la clase 'show' para mostrar/ocultar el menú
+};
+
 
         createIndicators();
         setInterval(() => {
