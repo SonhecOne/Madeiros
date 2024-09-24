@@ -157,19 +157,7 @@
             background-color: #049400;
         }
 #navbar {
-    display: none; /* Ocultar el menú por defecto */
-    flex-direction: column;
-    position: fixed; /* Posición fija */
-    background-color: #06af00;
-    width: 250px; /* Ancho de la barra lateral */
-    height: 100%; /* Altura completa */
-    top: 0;
-    right: -250px; /* Fuera de la vista */
-    transition: right 0.3s; /* Transición suave */
-}
-
-#navbar.show {
-    right: 0; /* Mostrar al desplazar a la vista */
+    display: flex;
 }
 
 #menuToggle {
@@ -182,13 +170,25 @@
 }
 
 @media (max-width: 768px) {
+    #navbar {
+        display: none; /* Ocultar el menú por defecto en móviles */
+        flex-direction: column;
+        position: absolute;
+        background-color: #06af00;
+        width: 100%;
+        top: 60px; /* Ajusta según la altura del header */
+        left: 0;
+    }
+    
+    #navbar.show {
+        display: flex; /* Mostrar el menú cuando se activa */
+    }
+    
     #menuToggle {
         display: block; /* Mostrar el botón en móviles */
     }
 }
 
-
-        
     </style>
 </head>
 <body>
